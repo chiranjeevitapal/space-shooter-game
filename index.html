@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Shooter with LLM</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <button id="restartButton">Restart Game</button>
+    <div id="scoreBoard">
+        <div>High Score: <span id="highScore">0</span></div>
+        <div>Score: <span id="currentScore">0</span></div>
+    </div>
+
+    <audio id="backgroundAudio" loop autoplay>
+        <source src="assets/audio/background.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <audio id="blastSound">
+        <source src="assets/audio/blast.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <script type="module" src="js/gameSettings.js"></script>
+    <script type="module" src="js/assetsLoader.js"></script>
+    <script type="module" src="js/gameControls.js"></script>
+    <script type="module" src="js/gameObjects.js"></script>
+    <script type="module" src="js/gameEngine.js"></script>
+    <script type="module" src="js/main.js"></script>
+
+</body>
+</html>

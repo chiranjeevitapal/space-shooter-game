@@ -1,0 +1,51 @@
+@font-face {
+    font-family: 'PixelGame';
+    src: url('https://raw.githubusercontent.com/chiranjeevitapal/spring-kafka-pub-sub-demo/master/src/test/java/com/demo/kafkapubsub/pixel-game/Pixel%20Game.otf');
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    position: relative;
+    font-family: 'PixelGame', sans-serif;
+}
+
+canvas {
+    display: block;
+    margin: 0 auto;
+    width: 100vw;
+    height: 100vh;
+}
+
+#restartButton {
+    display: none;  /* Initially hidden */
+    position: absolute;
+    top: 70%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 15px 30px;
+    font-size: 28px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    z-index: 10;  /* Ensure it's on top */
+    font-family: 'PixelGame', sans-serif;
+}
+
+
+#scoreBoard {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: white;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 28px;
+    z-index: 5;
+}

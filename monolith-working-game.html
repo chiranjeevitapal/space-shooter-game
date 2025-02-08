@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Shooter with LLM</title>
+    <style>
+        @font-face {
+            font-family: 'PixelGame';
+            src: url('https://raw.githubusercontent.com/chiranjeevitapal/spring-kafka-pub-sub-demo/master/src/test/java/com/demo/kafkapubsub/pixel-game/Pixel%20Game.otf');
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            position: relative;
+            font-family: 'PixelGame', sans-serif;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #restartButton {
+            display: none;
+            position: absolute;
+            top: 70%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            font-size: 28px; /* Increased font size */
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            z-index: 10;
+            font-family: 'PixelGame', sans-serif; /* Apply custom font */
+        }
+
+        #scoreBoard {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px; /* Increased padding */
+            border-radius: 8px;
+            font-size: 28px; /* Increased font size */
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <button id="restartButton">Restart Game</button>
+    <div id="scoreBoard">
+        <div>High Score: <span id="highScore">0</span></div>
+        <div>Score: <span id="currentScore">0</span></div>
+    </div>
+
+    <audio id="backgroundAudio" loop autoplay>
+        <source src="assets/audio/background.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <audio id="blastSound">
+        <source src="assets/audio/blast.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const restartButton = document.getElementById('restartButton');
+        const backgroundAudio = document.getElementById('backgroundAudio');
+        const blastSound = document.getElementById('blastSound');
+        const highScoreElement = document.getElementById('highScore');
+        const currentScoreElement = document.getElementById('currentScore');
+
+        let highScore = localStorage.getItem('highScore') || 0;
+        let currentScore = 0;
+
+        const gameSettings = {
+            bulletSpeed: 9,
+            rockSpeed: 5,
+            spawnRate: 0.015,
+            gameLoopDelay: 30,
+            rocketWidth: 100,
+            rocketHeight: 100,
+            rockWidth: 100,
+            rockHeight: 100,
+            bulletWidth: 8,
+            bulletHeight: 20,
+            rocketMarginBottom: 10
+        };
+
+        const backgroundImg = new Image();
+        backgroundImg.src = 'assets/images/background.jpg';
+
+        const rocketImg = new Image();
+        rocketImg.src = 'assets/images/rocket.png';
+
+        const rockImg = new Image();
+        rockImg.src = 'assets/images/rock.png';
+
+        const explosionImg = new Image();
+        explosionImg.src = 'assets/images/blast.png';
+
+        const gameOverImg = new Image();
+        gameOverImg.src = 'assets/images/game-over.png';
+
+        let rocket = {};
+        let bullets = [], rocks = [], explosions = [];
+        let isGameOver, gameOverScale, showGameOver, explosionFinished;
+        let isFiring = false;
+        let fireInterval;
+
+        function initializeGame() {
+            rocket = {
+                width: gameSettings.rocketWidth,
+                height: gameSettings.rocketHeight,
+                x: canvas.width / 2 - gameSettings.rocketWidth / 2,
+                y: canvas.height - gameSettings.rocketHeight - gameSettings.rocketMarginBottom
+            };
+
+            bullets = [];
+            rocks = [];
+            explosions = [];
+            isGameOver = false;
+            gameOverScale = 0;
+            showGameOver = false;
+            explosionFinished = false;
+            currentScore = 0;
+
+            restartButton.style.display = 'none';
+            backgroundAudio.play();
+            updateScoreBoard();
+        }
+
+        function updateScoreBoard() {
+            currentScoreElement.textContent = currentScore;
+            highScoreElement.textContent = highScore;
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (rocket && rocket.width) {
+                rocket.x = canvas.width / 2 - rocket.width / 2;
+                rocket.y = canvas.height - rocket.height - gameSettings.rocketMarginBottom;
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        canvas.addEventListener('mousemove', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            rocket.x = mouseX - rocket.width / 2;
+
+            if (rocket.x < 0) rocket.x = 0;
+            if (rocket.x + rocket.width > canvas.width) rocket.x = canvas.width - rocket.width;
+        });
+
+        canvas.addEventListener('mousedown', (event) => {
+            isFiring = true;
+            fireInterval = setInterval(() => {
+                if (isFiring) {
+                    bullets.push({
+                        x: rocket.x + rocket.width / 2 - gameSettings.bulletWidth / 2,
+                        y: rocket.y,
+                        width: gameSettings.bulletWidth,
+                        height: gameSettings.bulletHeight,
+                        speed: gameSettings.bulletSpeed,
+                        color: Math.random() > 0.5 ? 'red' : 'orange'
+                    });
+                }
+            }, 200);
+        });
+
+        canvas.addEventListener('mouseup', (event) => {
+            isFiring = false;
+            clearInterval(fireInterval);
+        });
+
+        function drawBackground() {
+            ctx.globalAlpha = 1;
+            ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = 1.0;
+        }
+
+        function drawRocket() {
+            ctx.drawImage(rocketImg, rocket.x, rocket.y, rocket.width, rocket.height);
+        }
+
+        function drawBullets() {
+            bullets.forEach(bullet => {
+                ctx.fillStyle = bullet.color;
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+                bullet.y -= bullet.speed;
+            });
+        }
+
+        function drawRocks() {
+            rocks.forEach(rock => {
+                ctx.drawImage(rockImg, rock.x, rock.y, rock.width, rock.height);
+                rock.y += rock.speed;
+            });
+        }
+
+        function drawExplosions() {
+            explosions.forEach((explosion, index) => {
+                ctx.drawImage(explosionImg, explosion.x, explosion.y, explosion.size, explosion.size);
+                explosion.lifetime--;
+                if (explosion.lifetime === 19) {
+                    blastSound.currentTime = 0;
+                    blastSound.play();
+                }
+                if (explosion.lifetime <= 0) {
+                    explosions.splice(index, 1);
+                    explosionFinished = true;
+                }
+            });
+        }
+
+        function drawGameOver() {
+            if (gameOverScale < 1) {
+                gameOverScale += 0.02;
+            }
+            const width = 600 * gameOverScale;
+            const height = 300 * gameOverScale;
+            ctx.drawImage(gameOverImg, canvas.width / 2 - width / 2, canvas.height / 2 - height / 2, width, height);
+
+            if (explosionFinished && isGameOver) {
+                if (currentScore > highScore) {
+                    highScore = currentScore;
+                    localStorage.setItem('highScore', highScore);
+                }
+                restartButton.style.display = 'block';
+                backgroundAudio.pause();
+                updateScoreBoard();
+            }
+        }
+
+        function spawnRock() {
+            if (Math.random() < gameSettings.spawnRate) {
+                rocks.push({
+                    x: Math.random() * (canvas.width - gameSettings.rockWidth),
+                    y: 0,
+                    width: gameSettings.rockWidth,
+                    height: gameSettings.rockHeight,
+                    speed: gameSettings.rockSpeed
+                });
+            }
+        }
+
+        function detectCollisions() {
+            bullets.forEach((bullet, bIndex) => {
+                rocks.forEach((rock, rIndex) => {
+                    if (
+                        bullet.x < rock.x + rock.width &&
+                        bullet.x + bullet.width > rock.x &&
+                        bullet.y < rock.y + rock.height &&
+                        bullet.y + bullet.height > rock.y
+                    ) {
+                        explosions.push({ x: rock.x, y: rock.y, size: 100, lifetime: 20 });
+                        bullets.splice(bIndex, 1);
+                        rocks.splice(rIndex, 1);
+                        currentScore += 10;
+                        updateScoreBoard();
+                    }
+                });
+            });
+
+            rocks.forEach((rock, rIndex) => {
+                if (
+                    rocket.x + rocket.width * 0.2 < rock.x + rock.width &&
+                    rocket.x + rocket.width * 0.8 > rock.x &&
+                    rocket.y < rock.y + rock.height &&
+                    rocket.y + rocket.height > rock.y
+                ) {
+                    explosions.push({ x: rocket.x, y: rocket.y, size: 150, lifetime: 30 });
+                    isGameOver = true;
+                }
+            });
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawBackground();
+            drawRocks();
+
+            if (!isGameOver) {
+                drawRocket();
+                drawBullets();
+                detectCollisions();
+                spawnRock();
+            }
+
+            drawExplosions();
+
+            if (explosionFinished && isGameOver) {
+                drawGameOver();
+            }
+
+            setTimeout(() => requestAnimationFrame(gameLoop), gameSettings.gameLoopDelay);
+        }
+
+        restartButton.addEventListener('click', () => {
+            initializeGame();
+        });
+
+        backgroundImg.onload = () => {
+            initializeGame();
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
