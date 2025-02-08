@@ -50,7 +50,7 @@ A fun, interactive space shooter game built using HTML5 Canvas and JavaScript. C
 
 3. **Open the Game:**
 
-   - Navigate to `http://localhost:8000/index.html` in your preferred web browser. 🌍
+   - Navigate to `http://localhost:8080/index.html` in your preferred web browser. 🌍
 
 ### Option 2: Run the Monolithic Version Directly 🚀
 
