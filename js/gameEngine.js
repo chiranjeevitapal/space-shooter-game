@@ -1,39 +1,28 @@
 import { assets } from './assetsLoader.js';
 import { gameSettings } from './gameSettings.js';
 import { isGameOver } from './gameState.js';
-
-let lastFrameTime = 0;
+import { autoMoveRocket } from './gameControls.js';
 
 export function gameLoop(ctx, canvas, rocket, bullets, rocks, explosions, updateScoreBoard, detectCollisions, spawnRock, drawGameOver) {
-    const currentTime = performance.now();
-    
-    if (currentTime - lastFrameTime < gameSettings.gameLoopDelay) {
-        requestAnimationFrame(() => gameLoop(ctx, canvas, rocket, bullets, rocks, explosions, updateScoreBoard, detectCollisions, spawnRock, drawGameOver));
-        return;
-    }
-    
-    lastFrameTime = currentTime;
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     drawBackground(ctx, canvas);
     drawRocks(ctx, rocks);
 
-    if (!isGameOver) {
+    if (!isGameOver) {  // Use the global game state
+        autoMoveRocket(rocket, rocks, bullets, canvas, gameSettings, isGameOver);
         drawRocket(ctx, rocket);
         drawBullets(ctx, bullets);
         detectCollisions(bullets, rocks, explosions, updateScoreBoard);
         spawnRock(rocks, canvas, gameSettings);
     } else {
-        drawGameOver(ctx, canvas);
-        return;
+        drawGameOver(ctx, canvas);  // Display Game Over screen
+        return;  // Stop the game loop
     }
 
     drawExplosions(ctx, explosions);
-
     requestAnimationFrame(() => gameLoop(ctx, canvas, rocket, bullets, rocks, explosions, updateScoreBoard, detectCollisions, spawnRock, drawGameOver));
 }
-
 
 function drawBackground(ctx, canvas) {
     ctx.drawImage(assets.backgroundImg, 0, 0, canvas.width, canvas.height);
@@ -44,18 +33,24 @@ function drawRocket(ctx, rocket) {
 }
 
 function drawBullets(ctx, bullets) {
-    bullets.forEach(bullet => {
+    bullets.forEach((bullet, index) => {
         ctx.fillStyle = bullet.color;
         ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
         bullet.y -= bullet.speed;
+
+        // Remove bullets that move off-screen
+        if (bullet.y + bullet.height < 0) {
+            bullets.splice(index, 1);
+        }
     });
 }
 
+
 function drawRocks(ctx, rocks) {
     rocks.forEach(rock => {
-        //console.log(`Rock position - X: ${rock.x}, Y: ${rock.y}`);
         ctx.drawImage(assets.rockImg, rock.x, rock.y, rock.width, rock.height);
         rock.y += rock.speed;
+        console.log(`Rock Speed: ${rock.speed}`);  // Confirming rock speed
     });
 }
 

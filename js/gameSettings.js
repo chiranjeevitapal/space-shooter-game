@@ -1,8 +1,9 @@
 export const gameSettings = {
-    bulletSpeed: 5,
-    rockSpeed: 5,       // Check if this is unchanged
-    spawnRate: 0.015,   // Lowering this will reduce the number of rocks
-    gameLoopDelay: 30,  // Higher values will slow down the game
+    bulletSpeed: 7,
+    rockSpeed: 3,
+    rocketSpeed: 4,
+    spawnRate: 0.01,  // Slightly reduced to balance gameplay
+    gameLoopDelay: 30,
     rocketWidth: 100,
     rocketHeight: 100,
     rockWidth: 100,

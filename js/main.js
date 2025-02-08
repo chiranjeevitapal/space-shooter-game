@@ -1,37 +1,28 @@
 import { gameSettings } from './gameSettings.js';
 import { assets } from './assetsLoader.js';
 import { createRocket, createRock } from './gameObjects.js';
-import { setupControls } from './gameControls.js';
+import { autoMoveRocket } from './gameControls.js';  // Only import autoMoveRocket
 import { gameLoop, drawGameOver } from './gameEngine.js';
 import { setGameOver } from './gameState.js';
-
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const restartButton = document.getElementById('restartButton');
 const highScoreElement = document.getElementById('highScore');
 const currentScoreElement = document.getElementById('currentScore');
-const backgroundAudio = document.getElementById('backgroundAudio');
 
 let rocket, bullets = [], rocks = [], explosions = [], isGameOver = false, currentScore = 0, highScore = localStorage.getItem('highScore') || 0;
 
 function initializeGame() {
-    rocket = createRocket(canvas, gameSettings);  // Reset rocket position
-    bullets = [];  // Clear bullets
-    rocks = [];  // Clear rocks
-    explosions = [];  // Clear explosions
-    currentScore = 0;  // Reset score
-    updateScoreBoard();  // Update scoreboard
-    
-    // Hide the restart button on new game start
-    const restartButton = document.getElementById('restartButton');
+    rocket = createRocket(canvas, gameSettings);  // Rocket is controlled automatically
+    bullets = [];
+    rocks = [];
+    explosions = [];
+    isGameOver = false;
+    currentScore = 0;
     restartButton.style.display = 'none';
-
-    // Reattach controls after restarting
-    setupControls(canvas, rocket, bullets);
+    updateScoreBoard();
 }
-
-
 
 function updateScoreBoard() {
     currentScoreElement.textContent = currentScore;
@@ -41,22 +32,17 @@ function updateScoreBoard() {
 window.addEventListener('resize', () => resizeCanvas(canvas));
 resizeCanvas(canvas);
 
-initializeGame();  // Ensure rocket is initialized
-setupControls(canvas, rocket, bullets);  // Now setup controls
+initializeGame();  // Initialize game without player controls
 
 restartButton.addEventListener('click', () => {
-    console.log('Restart button clicked!');
     initializeGame();
-    setGameOver(false);  // Reset the game over state
+    setGameOver(false);  // Reset the global game state
     gameLoop(ctx, canvas, rocket, bullets, rocks, explosions, updateScoreBoard, detectCollisions, spawnRock, drawGameOver);
 });
-
-
 
 assets.backgroundImg.onload = () => {
     gameLoop(ctx, canvas, rocket, bullets, rocks, explosions, updateScoreBoard, detectCollisions, spawnRock, drawGameOver);
 };
-
 
 function resizeCanvas(canvas) {
     canvas.width = window.innerWidth;
@@ -73,7 +59,6 @@ function detectCollisions(bullets, rocks, explosions, updateScoreBoard) {
                 bullet.y < rock.y + rock.height &&
                 bullet.y + bullet.height > rock.y
             ) {
-                console.log('Bullet hit a rock!');
                 explosions.push({ x: rock.x, y: rock.y, size: 100, lifetime: 20 });
                 bullets.splice(bIndex, 1);
                 rocks.splice(rIndex, 1);
@@ -91,23 +76,23 @@ function detectCollisions(bullets, rocks, explosions, updateScoreBoard) {
             rocket.y < rock.y + rock.height &&
             rocket.y + rocket.height > rock.y
         ) {
-            console.log('Rocket collided with a rock!');
-            explosions.push({ x: rocket.x, y: rocket.y, size: 150, lifetime: 30 });
-            setGameOver(true);  // Update game state
+            explosions.push({ x: rocket.x, y: rocket.y, size: 150, lifetime: 30, soundPlayed: false});
+            setGameOver(true);  // Use global game state
+            console.log('Rocket collided with a rock! Game Over triggered.');
         }
     });
 }
 
+
 function spawnRock(rocks, canvas, gameSettings) {
     if (Math.random() < gameSettings.spawnRate) {
-        rocks.push(createRock(canvas, gameSettings));
+        rocks.push({
+            x: Math.random() * (canvas.width - gameSettings.rockWidth),
+            y: 0,
+            width: gameSettings.rockWidth,
+            height: gameSettings.rockHeight,
+            speed: gameSettings.rockSpeed  // Correctly using gameSettings
+        });
     }
 }
 
-// Play audio after the first user interaction
-window.addEventListener('click', () => {
-    if (backgroundAudio.paused) {
-        backgroundAudio.play();
-        console.log('Background audio started!');
-    }
-});
