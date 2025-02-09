@@ -1,8 +1,8 @@
 export const gameSettings = {
     bulletSpeed: 7,
     rockSpeed: 3,
-    rocketSpeed: 4, // This will be used if we go with fixed speed rocket
-    spawnRate: 0.01,  // Slightly reduced to balance gameplay
+    rocketBaseSpeed: 4,
+    spawnRate: 0.01,
     gameLoopDelay: 30,
     rocketWidth: 100,
     rocketHeight: 100,

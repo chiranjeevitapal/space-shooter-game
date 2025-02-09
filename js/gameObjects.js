@@ -3,7 +3,7 @@ export function createRocket(canvas, gameSettings) {
         width: gameSettings.rocketWidth,
         height: gameSettings.rocketHeight,
         x: canvas.width / 2 - gameSettings.rocketWidth / 2,
-        y: canvas.height - gameSettings.rocketHeight - gameSettings.rocketMarginBottom  // Ensure it starts near the bottom
+        y: canvas.height - gameSettings.rocketHeight - gameSettings.rocketMarginBottom
     };
 }
 

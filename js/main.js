@@ -1,9 +1,10 @@
 import { gameSettings } from './gameSettings.js';
 import { assets } from './assetsLoader.js';
 import { createRocket, createRock } from './gameObjects.js';
-import { autoMoveRocket } from './gameControls.js';  // Only import autoMoveRocket
+import { applyLLMInstructions } from './gameControls.js';
 import { gameLoop, drawGameOver } from './gameEngine.js';
-import { setGameOver } from './gameState.js';
+import { setGameOver, performanceData} from './gameState.js';
+
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -11,17 +12,30 @@ const restartButton = document.getElementById('restartButton');
 const highScoreElement = document.getElementById('highScore');
 const currentScoreElement = document.getElementById('currentScore');
 
-let rocket, bullets = [], rocks = [], explosions = [], isGameOver = false, currentScore = 0, highScore = localStorage.getItem('highScore') || 0;
+let rocket, bullets = [], rocks = [], explosions = [], currentScore = 0;
+let highScore = localStorage.getItem('highScore') || 0;
 
 function initializeGame() {
-    rocket = createRocket(canvas, gameSettings);  // Rocket is controlled automatically
+    rocket = createRocket(canvas, gameSettings);
     bullets = [];
     rocks = [];
     explosions = [];
-    isGameOver = false;
+    setGameOver(false);
     currentScore = 0;
+
+    performanceData.missedShots = 0;
+    performanceData.successfulHits = 0;
+    performanceData.collisions = 0;
+    performanceData.totalThreatScore = 0;
+    performanceData.threatsAnalyzed = 0;
+
     restartButton.style.display = 'none';
     updateScoreBoard();
+
+    const savedInstructions = sessionStorage.getItem('llmInstructions');
+    if (savedInstructions) {
+        applyLLMInstructions(savedInstructions);
+    }
 }
 
 function updateScoreBoard() {
@@ -29,28 +43,29 @@ function updateScoreBoard() {
     highScoreElement.textContent = highScore;
 }
 
-window.addEventListener('resize', () => resizeCanvas(canvas));
-resizeCanvas(canvas);
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if (rocket) {
+        rocket.x = canvas.width / 2 - rocket.width / 2;
+        rocket.y = canvas.height - rocket.height - gameSettings.rocketMarginBottom;
+    }
+}
 
-initializeGame();  // Initialize game without player controls
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
 restartButton.addEventListener('click', () => {
     initializeGame();
-    setGameOver(false);  // Reset the global game state
     gameLoop(ctx, canvas, rocket, bullets, rocks, explosions, updateScoreBoard, detectCollisions, spawnRock, drawGameOver);
 });
 
 assets.backgroundImg.onload = () => {
+    initializeGame();
     gameLoop(ctx, canvas, rocket, bullets, rocks, explosions, updateScoreBoard, detectCollisions, spawnRock, drawGameOver);
 };
 
-function resizeCanvas(canvas) {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-
 function detectCollisions(bullets, rocks, explosions, updateScoreBoard) {
-    // Bullet-rock collisions
     bullets.forEach((bullet, bIndex) => {
         rocks.forEach((rock, rIndex) => {
             if (
@@ -63,12 +78,12 @@ function detectCollisions(bullets, rocks, explosions, updateScoreBoard) {
                 bullets.splice(bIndex, 1);
                 rocks.splice(rIndex, 1);
                 currentScore += 10;
+                performanceData.successfulHits += 1;
                 updateScoreBoard();
             }
         });
     });
 
-    // Rocket-rock collisions
     rocks.forEach((rock) => {
         if (
             rocket.x < rock.x + rock.width &&
@@ -76,23 +91,16 @@ function detectCollisions(bullets, rocks, explosions, updateScoreBoard) {
             rocket.y < rock.y + rock.height &&
             rocket.y + rocket.height > rock.y
         ) {
-            explosions.push({ x: rocket.x, y: rocket.y, size: 150, lifetime: 30, soundPlayed: false});
-            setGameOver(true);  // Use global game state
+            explosions.push({ x: rocket.x, y: rocket.y, size: 150, lifetime: 30 });
+            performanceData.collisions += 1;
+            setGameOver(true);
             console.log('Rocket collided with a rock! Game Over triggered.');
         }
     });
 }
 
-
 function spawnRock(rocks, canvas, gameSettings) {
     if (Math.random() < gameSettings.spawnRate) {
-        rocks.push({
-            x: Math.random() * (canvas.width - gameSettings.rockWidth),
-            y: 0,
-            width: gameSettings.rockWidth,
-            height: gameSettings.rockHeight,
-            speed: gameSettings.rockSpeed  // Correctly using gameSettings
-        });
+        rocks.push(createRock(canvas, gameSettings));
     }
 }
-

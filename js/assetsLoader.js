@@ -15,4 +15,3 @@ assets.gameOverImg.src = 'assets/images/game-over.png';
 assets.gameOverImg.onload = () => {
     console.log('Game Over image loaded successfully!');
 };
-
